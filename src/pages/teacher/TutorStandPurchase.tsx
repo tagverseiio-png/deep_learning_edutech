@@ -9,13 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, CreditCard, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateSubscriptionOrder, useVerifySubscriptionPayment, useRazorpayPayment } from "@/hooks/usePayments";
 import tutorStandImage from "@/assets/tutor-stand.jpg";
-
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
 
 const TutorStandPurchase = () => {
   const navigate = useNavigate();
@@ -23,6 +18,11 @@ const TutorStandPurchase = () => {
   const [purchaseStatus, setPurchaseStatus] = useState<"not_started" | "pending" | "verified" | "rejected">("not_started");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+
+  // Payment hooks
+  const createOrderMutation = useCreateSubscriptionOrder();
+  const verifyPaymentMutation = useVerifySubscriptionPayment();
+  const { initiatePayment } = useRazorpayPayment();
 
   useEffect(() => {
     // Load purchase status from localStorage
@@ -35,78 +35,64 @@ const TutorStandPurchase = () => {
     }
   }, []);
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
   const handleRazorpayPayment = async () => {
-    const res = await loadRazorpayScript();
-
-    if (!res) {
-      toast({
-        title: "Error",
-        description: "Razorpay SDK failed to load. Please check your connection.",
-        variant: "destructive",
+    try {
+      // Create subscription order through backend
+      const result = await createOrderMutation.mutateAsync({
+        plan: "monthly", // Fixed plan for tutor stand
+        amount: 299, // ₹299
       });
-      return;
-    }
 
-    // Create order (normally done on backend)
-    const orderId = `order_${Date.now()}`;
-    const amount = 29900; // ₹299 in paise
+      const { order } = result.data;
 
-    const options = {
-      key: "rzp_test_YOUR_KEY_HERE", // Replace with your Razorpay test key
-      amount: amount,
-      currency: "INR",
-      name: "EDUTECH",
-      description: "Easy Mount Tutor Stand",
-      order_id: orderId,
-      handler: function (response: any) {
-        // Payment successful
-        const paymentId = response.razorpay_payment_id;
-        const orderId = response.razorpay_order_id;
-        const signature = response.razorpay_signature;
+      // Initialize Razorpay payment
+      await initiatePayment({
+        order: {
+          id: order.orderId,
+          amount: order.amount,
+          currency: order.currency,
+        },
+        userInfo: {
+          name: "Teacher",
+          email: "teacher@example.com",
+        },
+        description: "Tutor Stand Purchase",
+        onSuccess: async (paymentData) => {
+          try {
+            // Verify payment on backend
+            await verifyPaymentMutation.mutateAsync(paymentData);
 
-        localStorage.setItem("tutorStandPurchaseStatus", "pending");
-        localStorage.setItem("razorpayOrderId", orderId);
-        localStorage.setItem("razorpayPaymentId", paymentId);
-        localStorage.setItem("purchaseDate", new Date().toISOString());
+            // Update local status
+            localStorage.setItem("tutorStandPurchaseStatus", "verified");
+            setPurchaseStatus("verified");
 
-        setPurchaseStatus("pending");
-
-        toast({
-          title: "Payment Successful!",
-          description: "Your purchase is pending verification by admin.",
-        });
-      },
-      prefill: {
-        name: "Teacher Name",
-        email: "teacher@example.com",
-        contact: "9999999999",
-      },
-      theme: {
-        color: "#0ea5e9",
-      },
-      modal: {
-        ondismiss: function () {
+            toast({
+              title: "Payment Successful!",
+              description: "Your tutor stand subscription is now active.",
+            });
+          } catch (error) {
+            toast({
+              variant: "destructive",
+              title: "Payment verification failed",
+              description: "Please contact support if amount was deducted.",
+            });
+          }
+        },
+        onFailure: (error) => {
           toast({
-            title: "Payment Cancelled",
-            description: "You cancelled the payment.",
             variant: "destructive",
+            title: "Payment Failed",
+            description: error.message || "Payment was cancelled or failed.",
           });
         },
-      },
-    };
-
-    const paymentObject = new window.Razorpay(options);
-    paymentObject.open();
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Order Creation Failed",
+        description: "Failed to create payment order. Please try again.",
+      });
+    }
   };
 
   const handleScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,86 +261,48 @@ const TutorStandPurchase = () => {
 
           {/* Payment Section */}
           {purchaseStatus === "not_started" || purchaseStatus === "rejected" ? (
-            <>
-              {/* Razorpay Payment */}
-              <Card className="mb-6 shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    Pay with Razorpay
-                  </CardTitle>
-                  <CardDescription>Secure and instant payment verification</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    onClick={handleRazorpayPayment} 
-                    size="lg" 
-                    className="w-full"
-                  >
-                    <CreditCard className="h-5 w-5 mr-2" />
-                    Pay ₹299 via Razorpay
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center mt-3">
-                    Secure payment powered by Razorpay
-                  </p>
-                </CardContent>
-              </Card>
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Complete Your Purchase
+                </CardTitle>
+                <CardDescription>Secure payment for your Tutor Stand subscription</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                  <h3 className="font-semibold text-blue-900 mb-2">Tutor Stand Benefits</h3>
+                  <ul className="text-blue-800 space-y-1 text-sm">
+                    <li>• Easy mount design for quick setup</li>
+                    <li>• Professional appearance in online classes</li>
+                    <li>• Adjustable height and angle</li>
+                    <li>• 24/7 customer support</li>
+                  </ul>
+                </div>
 
-              {/* UPI Payment Fallback */}
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle>Alternative: UPI Payment</CardTitle>
-                  <CardDescription>Pay via UPI and upload payment screenshot</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-semibold mb-2 block">UPI ID:</Label>
-                    <div className="bg-muted p-3 rounded-md">
-                      <p className="font-mono text-sm">edutech@upi</p>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold text-green-900">Monthly Subscription</h3>
+                      <p className="text-green-700 text-lg font-bold">₹299/month</p>
                     </div>
+                    <Button
+                      onClick={handleRazorpayPayment}
+                      disabled={createOrderMutation.isPending}
+                      size="lg"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CreditCard className="h-5 w-5 mr-2" />
+                      {createOrderMutation.isPending ? "Creating Order..." : "Pay ₹299"}
+                    </Button>
                   </div>
+                </div>
 
-                  <div>
-                    <Label className="text-sm font-semibold mb-2 block">Or scan QR Code:</Label>
-                    <div className="bg-muted rounded-lg flex items-center justify-center h-48">
-                      <p className="text-muted-foreground text-sm">QR Code Placeholder</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="screenshot" className="text-sm font-semibold mb-2 block">
-                      Upload Payment Screenshot:
-                    </Label>
-                    <Input
-                      id="screenshot"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleScreenshotUpload}
-                      className="cursor-pointer"
-                    />
-                    {previewUrl && (
-                      <div className="mt-3">
-                        <img 
-                          src={previewUrl} 
-                          alt="Payment screenshot preview" 
-                          className="max-h-48 rounded-md border"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <Button 
-                    onClick={handleSubmitScreenshot} 
-                    size="lg" 
-                    className="w-full"
-                    disabled={!screenshot && !previewUrl}
-                  >
-                    <Upload className="h-5 w-5 mr-2" />
-                    Submit Screenshot
-                  </Button>
-                </CardContent>
-              </Card>
-            </>
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  Secure payment powered by Razorpay • Instant activation upon successful payment
+                </p>
+              </CardContent>
+            </Card>
           ) : null}
         </div>
       </main>

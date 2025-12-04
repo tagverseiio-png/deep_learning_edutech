@@ -44,7 +44,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100), // Convert to paise
       currency: 'INR',
-      receipt: `course_${courseId}_${Date.now()}`,
+      receipt: `c_${courseId}_${Date.now().toString().slice(-6)}`,
       notes: {
         studentId: student.id,
         courseId,
@@ -192,7 +192,7 @@ export const createSubscriptionOrder = async (req: AuthRequest, res: Response): 
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100),
       currency: 'INR',
-      receipt: `tutor_stand_${teacher.id}_${Date.now()}`,
+      receipt: `ts_${teacher.id.slice(-8)}_${Date.now().toString().slice(-6)}`,
       notes: {
         teacherId: teacher.id,
         purpose: 'tutor_stand_subscription',
