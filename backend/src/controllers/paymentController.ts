@@ -41,10 +41,11 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     }
 
     // Create Razorpay order (amount in paise for INR)
+    const timestamp = Date.now().toString().slice(-8);
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100), // Convert to paise
       currency: 'INR',
-      receipt: `c_${courseId}_${Date.now().toString().slice(-6)}`,
+      receipt: `c_${courseId}_${timestamp}`,
       notes: {
         studentId: student.id,
         courseId,
@@ -189,10 +190,11 @@ export const createSubscriptionOrder = async (req: AuthRequest, res: Response): 
     const { plan, amount } = req.body; // plan: 'monthly' | 'yearly'
 
     // Create Razorpay order for subscription
+    const timestamp = Date.now().toString().slice(-8); // Last 8 digits of timestamp
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100),
       currency: 'INR',
-      receipt: `ts_${teacher.id.slice(-8)}_${Date.now().toString().slice(-6)}`,
+      receipt: `ts_${timestamp}`,
       notes: {
         teacherId: teacher.id,
         purpose: 'tutor_stand_subscription',
