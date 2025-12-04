@@ -56,6 +56,16 @@ export interface Course {
   };
 }
 
+export interface CourseFilters {
+  category?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  teacherId?: string;
+  page?: number;
+  limit?: number;
+}
+
 export interface CreateCourseInput {
   title: string;
   description: string;

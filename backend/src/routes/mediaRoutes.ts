@@ -8,6 +8,61 @@ import { config } from '../config';
 
 const router = Router();
 
+// Generic upload endpoint (routes based on type parameter)
+router.post('/upload', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { type } = req.body;
+
+    if (!type) {
+      return sendError(res, 'Type parameter is required', 400);
+    }
+
+    let uploadMiddleware;
+
+    switch (type) {
+      case 'thumbnail':
+        uploadMiddleware = uploadImage.single('file');
+        break;
+      case 'video':
+        uploadMiddleware = uploadVideo.single('file');
+        break;
+      case 'document':
+        uploadMiddleware = uploadDocument.single('file');
+        break;
+      default:
+        return sendError(res, 'Invalid type parameter. Must be thumbnail, video, or document', 400);
+    }
+
+    // Apply the appropriate upload middleware
+    uploadMiddleware(req, res, async (err) => {
+      if (err) {
+        console.error('Upload middleware error:', err);
+        return sendError(res, 'File upload failed', 400);
+      }
+
+      if (!req.file) {
+        return sendError(res, 'No file provided', 400);
+      }
+
+      const relativePath = getRelativePath(req.file.path);
+      const fileUrl = getFileUrl(relativePath);
+
+      sendSuccess(res, {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        path: relativePath,
+        url: fileUrl,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        type: type,
+      }, 'File uploaded successfully', 201);
+    });
+  } catch (error) {
+    console.error('Generic upload error:', error);
+    sendError(res, 'Failed to upload file', 500);
+  }
+});
+
 // Upload single image (profile, thumbnail)
 router.post('/image', authenticate, uploadImage.single('image'), async (req: Request, res: Response) => {
   try {

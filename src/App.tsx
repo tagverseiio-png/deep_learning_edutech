@@ -8,11 +8,16 @@ import { TeacherRoute, StudentRoute } from "@/components/ProtectedRoute";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Courses from "./pages/Courses";
+import CourseDetail from "./pages/CourseDetail";
 import TeacherLogin from "./pages/teacher/TeacherLogin";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import TeacherRegister from "./pages/teacher/TeacherRegister";
+import CreateCourse from "./pages/teacher/CreateCourse";
 import UploadProof from "./pages/teacher/UploadProof";
 import TutorStandPurchase from "./pages/teacher/TutorStandPurchase";
 import StudentLogin from "./pages/student/StudentLogin";
+import StudentRegister from "./pages/student/StudentRegister";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -29,7 +34,12 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <AuthProvider>
           <Toaster />
           <Sonner />
@@ -37,12 +47,23 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/:id" element={<CourseDetail />} />
             <Route path="/teacher/login" element={<TeacherLogin />} />
+            <Route path="/teacher/register" element={<TeacherRegister />} />
             <Route
               path="/teacher/dashboard"
               element={
                 <TeacherRoute>
                   <TeacherDashboard />
+                </TeacherRoute>
+              }
+            />
+            <Route
+              path="/teacher/create-course"
+              element={
+                <TeacherRoute>
+                  <CreateCourse />
                 </TeacherRoute>
               }
             />
@@ -63,6 +84,7 @@ const App = () => (
               }
             />
             <Route path="/student/login" element={<StudentLogin />} />
+            <Route path="/student/register" element={<StudentRegister />} />
             <Route
               path="/student/dashboard"
               element={

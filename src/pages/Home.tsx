@@ -21,16 +21,16 @@ const Home = () => {
               Short 10-minute learning videos by verified teachers
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/teacher/login">
+              <Link to="/student/register">
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto text-lg px-8">
                   <GraduationCap className="mr-2 h-5 w-5" />
-                  I am a Teacher
+                  Join as Student
                 </Button>
               </Link>
-              <Link to="/student/login">
+              <Link to="/teacher/register">
                 <Button size="lg" className="w-full sm:w-auto text-lg px-8 bg-accent hover:bg-accent/90">
                   <Users className="mr-2 h-5 w-5" />
-                  I am a Student
+                  Become a Teacher
                 </Button>
               </Link>
             </div>
@@ -140,18 +140,20 @@ const Home = () => {
             Join thousands of learners and teachers transforming education together
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/student/login">
+            <Link to="/student/register">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto">
                 Start Learning
               </Button>
             </Link>
-           <Button
-  size="lg"
-  variant="outline"
-  className="w-full sm:w-auto text-black border-accent-foreground hover:bg-accent-foreground/10"
->
-  Start Teaching
-</Button>
+            <Link to="/teacher/register">
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto text-black border-accent-foreground hover:bg-accent-foreground/10"
+              >
+                Start Teaching
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
