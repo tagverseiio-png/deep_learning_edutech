@@ -65,7 +65,7 @@ show_table_status() {
     psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
         SELECT
             schemaname,
-            tablename,
+            relname,
             n_tup_ins AS rows_inserted,
             n_tup_upd AS rows_updated,
             n_tup_del AS rows_deleted,
@@ -73,7 +73,7 @@ show_table_status() {
             n_dead_tup AS dead_rows
         FROM pg_stat_user_tables
         WHERE schemaname = 'public'
-        ORDER BY tablename;
+        ORDER BY relname;
     "
 }
 
@@ -88,7 +88,7 @@ if [ $? -eq 0 ]; then
     echo "Current table row counts:"
     psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
         SELECT
-            tablename,
+            relname,
             n_tup_ins AS total_rows
         FROM pg_stat_user_tables
         WHERE schemaname = 'public'
