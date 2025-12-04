@@ -43,14 +43,15 @@ const TutorStandPurchase = () => {
         amount: 299, // ₹299
       });
 
-      const { order } = result.data;
+      // Backend returns { orderId, amount, currency, keyId } directly in data
+      const orderData = result.data;
 
       // Initialize Razorpay payment
       await initiatePayment({
         order: {
-          id: order.orderId,
-          amount: order.amount,
-          currency: order.currency,
+          id: orderData.orderId,
+          amount: orderData.amount,
+          currency: orderData.currency,
         },
         userInfo: {
           name: "Teacher",
