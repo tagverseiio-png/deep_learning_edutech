@@ -115,7 +115,7 @@ export const verifyPayment = async (req: AuthRequest, res: Response): Promise<vo
     });
 
     // Create enrollment if payment is for course
-    if (payment.purpose === 'course_enrollment') {
+    if (payment.purpose === 'course_enrollment' && payment.studentId) {
       const courseId = (payment.metadata as any)?.courseId;
       if (courseId) {
         // Check if already enrolled
@@ -205,7 +205,7 @@ export const createSubscriptionOrder = async (req: AuthRequest, res: Response): 
     // Save pending payment
     await prisma.payment.create({
       data: {
-        studentId: teacher.id, // Using studentId field for teacher payment
+        teacherId: teacher.id, // Use teacherId for teacher payments
         amount,
         currency: 'INR',
         status: 'pending',

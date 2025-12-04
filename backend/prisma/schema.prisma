@@ -96,6 +96,7 @@ model Teacher {
   tutorStandSubscription TutorStandSubscription?
   reviews               Review[]
   earnings              Earning[]
+  payments              Payment[]          @relation("TeacherPayments")
 
   @@index([userId])
   @@index([verificationStatus])
@@ -258,8 +259,10 @@ model Review {
 
 model Payment {
   id                String   @id @default(uuid())
-  studentId         String
-  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId         String?
+  student           Student?  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId         String?
+  teacher           Teacher?  @relation("TeacherPayments", fields: [teacherId], references: [id], onDelete: Cascade)
   amount            Float
   currency          String   @default("INR")
   status            String   // succeeded, pending, failed
@@ -272,6 +275,7 @@ model Payment {
   updatedAt         DateTime @updatedAt
 
   @@index([studentId])
+  @@index([teacherId])
   @@index([status])
   @@index([stripePaymentId])
   @@index([razorpayOrderId])
