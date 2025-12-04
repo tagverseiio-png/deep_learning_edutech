@@ -32,11 +32,6 @@ export const config = {
     password: process.env.EMAIL_PASSWORD,
   },
   
-  stripe: {
-    secretKey: process.env.STRIPE_SECRET_KEY || '',
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
-  },
-  
   razorpay: {
     keyId: process.env.RAZORPAY_KEY_ID || '',
     secret: process.env.RAZORPAY_SECRET || '',

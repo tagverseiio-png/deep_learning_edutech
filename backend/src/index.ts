@@ -12,6 +12,7 @@ import enrollmentRoutes from './routes/enrollmentRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import mediaRoutes from './routes/mediaRoutes';
+import contactRoutes from './routes/contactRoutes';
 
 const app: Application = express();
 
@@ -98,6 +99,7 @@ app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/contact', contactRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

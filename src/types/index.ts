@@ -164,13 +164,10 @@ export interface PaginatedResponse<T> {
   };
 }
 
-// Filter/Query types
-export interface CourseFilters {
-  category?: string;
-  search?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  teacherId?: string;
-  page?: number;
-  limit?: number;
+// Contact types
+export interface ContactInput {
+  name: string;
+  email: string;
+  subject?: string;
+  message: string;
 }

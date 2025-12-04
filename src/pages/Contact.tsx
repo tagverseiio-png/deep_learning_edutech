@@ -1,12 +1,60 @@
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageCircle, Mail, MapPin } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { MessageCircle, Mail, MapPin, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/api";
+import type { ContactInput, ApiResponse } from "@/types";
 
 const Contact = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState<ContactInput>({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const { toast } = useToast();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      await api.post<ApiResponse<any>>('/contact', formData);
+      
+      toast({
+        title: "Message sent!",
+        description: "Thank you for contacting us. We'll get back to you soon.",
+      });
+      
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        subject: "",
+        message: "",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to send message",
+        description: "Please try again later or contact us directly.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -27,17 +75,66 @@ const Contact = () => {
                   <CardTitle>Send us a Message</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <form className="space-y-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <Input placeholder="Your Name" />
+                      <Label htmlFor="name">Name *</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        placeholder="Your Name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        required
+                        disabled={isLoading}
+                      />
                     </div>
                     <div>
-                      <Input type="email" placeholder="Your Email" />
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        required
+                        disabled={isLoading}
+                      />
                     </div>
                     <div>
-                      <Textarea placeholder="Your Message" rows={5} />
+                      <Label htmlFor="subject">Subject</Label>
+                      <Input
+                        id="subject"
+                        name="subject"
+                        placeholder="Subject (optional)"
+                        value={formData.subject}
+                        onChange={handleInputChange}
+                        disabled={isLoading}
+                      />
                     </div>
-                    <Button className="w-full">Send Message</Button>
+                    <div>
+                      <Label htmlFor="message">Message *</Label>
+                      <Textarea
+                        id="message"
+                        name="message"
+                        placeholder="Your message..."
+                        rows={5}
+                        value={formData.message}
+                        onChange={handleInputChange}
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send Message"
+                      )}
+                    </Button>
                   </form>
                 </CardContent>
               </Card>
