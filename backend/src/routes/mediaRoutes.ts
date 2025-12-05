@@ -49,13 +49,12 @@ router.post('/upload', authenticate, upload.single('file'), async (req: Request,
     }
 
     const relativePath = getRelativePath(file.path);
-    const fileUrl = getFileUrl(relativePath);
 
     sendSuccess(res, {
       filename: file.filename,
       originalName: file.originalname,
       path: relativePath,
-      url: fileUrl,
+      url: `${config.apiUrl}/uploads/${relativePath}`,
       size: file.size,
       mimetype: file.mimetype,
       type: type,

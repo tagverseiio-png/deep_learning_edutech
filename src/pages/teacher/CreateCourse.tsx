@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, Video, Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import { getMediaUrl } from "@/lib/media";
 import type { ApiError } from "@/types";
 
 const CreateCourse = () => {
@@ -106,7 +107,6 @@ const CreateCourse = () => {
   const uploadFile = async (file: File, type: 'thumbnail' | 'video'): Promise<string> => {
     const formDataUpload = new FormData();
     formDataUpload.append('file', file);
-    formDataUpload.append('type', type);
 
     const response = await api.post(`/media/upload?type=${type}`, formDataUpload, {
       headers: {
@@ -114,7 +114,8 @@ const CreateCourse = () => {
       },
     });
 
-    return response.data.data.url;
+    // Return relative path only
+    return response.data.data.path;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

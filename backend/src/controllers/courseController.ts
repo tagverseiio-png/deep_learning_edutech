@@ -33,6 +33,10 @@ export const createCourse = async (req: AuthRequest, res: Response): Promise<voi
       syllabus,
     } = req.body;
 
+    // Sanitize file URLs - if they contain the full domain/uploads path, extract just the relative path
+    const sanitizedThumbnail = thumbnailImage?.replace(/^.*\/uploads\//, '') || undefined;
+    const sanitizedVideoUrl = videoUrl?.replace(/^.*\/uploads\//, '') || undefined;
+
     const course = await prisma.course.create({
       data: {
         title,
@@ -43,7 +47,7 @@ export const createCourse = async (req: AuthRequest, res: Response): Promise<voi
         level: level || CourseLevel.BEGINNER,
         price: parseFloat(price),
         duration: parseInt(duration),
-        thumbnailImage,
+        thumbnailImage: sanitizedThumbnail,
         syllabus,
       },
       include: {
@@ -62,7 +66,7 @@ export const createCourse = async (req: AuthRequest, res: Response): Promise<voi
     });
 
     // If videoUrl is provided, create a default module and lesson
-    if (videoUrl) {
+    if (sanitizedVideoUrl) {
       await prisma.module.create({
         data: {
           courseId: course.id,
@@ -74,7 +78,7 @@ export const createCourse = async (req: AuthRequest, res: Response): Promise<voi
             create: {
               title: title,
               content: description,
-              videoUrl: videoUrl,
+              videoUrl: sanitizedVideoUrl,
               order: 1,
               duration: parseInt(duration),
             },
@@ -230,7 +234,7 @@ export const updateCourse = async (req: AuthRequest, res: Response): Promise<voi
     }
 
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
 
     const teacher = await prisma.teacher.findUnique({
       where: { userId: req.user.id },
@@ -253,6 +257,14 @@ export const updateCourse = async (req: AuthRequest, res: Response): Promise<voi
     if (course.teacherId !== teacher.id && req.user.role !== 'ADMIN') {
       sendError(res, 'Not authorized to update this course', 403);
       return;
+    }
+
+    // Sanitize file URLs - if they contain the full domain/uploads path, extract just the relative path
+    if (updateData.thumbnailImage && typeof updateData.thumbnailImage === 'string') {
+      updateData.thumbnailImage = updateData.thumbnailImage.replace(/^.*\/uploads\//, '');
+    }
+    if (updateData.videoUrl && typeof updateData.videoUrl === 'string') {
+      updateData.videoUrl = updateData.videoUrl.replace(/^.*\/uploads\//, '');
     }
 
     const updatedCourse = await prisma.course.update({

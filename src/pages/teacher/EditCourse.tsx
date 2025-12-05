@@ -27,6 +27,7 @@ import {
 import { useCourse, useUpdateCourse, usePublishCourse } from "@/hooks/useCourses";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import { getMediaUrl } from "@/lib/media";
 
 interface CourseFormData {
   title: string;
@@ -117,11 +118,12 @@ const EditCourse = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const fileUrl = response.data.url;
+      // Store relative path only (not the full URL)
+      const relativePath = response.data.data.path;
       
       setFormData((prev) => ({
         ...prev,
-        [type === "thumbnail" ? "thumbnailImage" : "videoUrl"]: fileUrl,
+        [type === "thumbnail" ? "thumbnailImage" : "videoUrl"]: relativePath,
       }));
 
       toast({
@@ -330,7 +332,7 @@ const EditCourse = () => {
                       <div className="w-48 h-28 bg-muted rounded-lg overflow-hidden flex items-center justify-center border">
                         {formData.thumbnailImage ? (
                           <img
-                            src={formData.thumbnailImage}
+                            src={getMediaUrl(formData.thumbnailImage) || undefined}
                             alt="Thumbnail"
                             className="w-full h-full object-cover"
                           />
@@ -378,7 +380,7 @@ const EditCourse = () => {
                       <div className="w-48 h-28 bg-muted rounded-lg overflow-hidden flex items-center justify-center border">
                         {formData.videoUrl ? (
                           <video
-                            src={formData.videoUrl}
+                            src={getMediaUrl(formData.videoUrl) || undefined}
                             className="w-full h-full object-cover"
                           />
                         ) : (
