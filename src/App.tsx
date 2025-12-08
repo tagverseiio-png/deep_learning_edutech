@@ -4,7 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { TeacherRoute, StudentRoute } from "@/components/ProtectedRoute";
+import { TeacherRoute, StudentRoute, VerifiedTeacherRoute } from "@/components/ProtectedRoute";
+import { ProtectedAdminRoute } from "@/components/ProtectedAdminRoute";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -17,11 +18,18 @@ import CreateCourse from "./pages/teacher/CreateCourse";
 import EditCourse from "./pages/teacher/EditCourse";
 import MyCourses from "./pages/teacher/MyCourses";
 import TeacherEarnings from "./pages/teacher/TeacherEarnings";
-import UploadProof from "./pages/teacher/UploadProof";
 import TutorStandPurchase from "./pages/teacher/TutorStandPurchase";
 import StudentLogin from "./pages/student/StudentLogin";
 import StudentRegister from "./pages/student/StudentRegister";
 import StudentDashboard from "./pages/student/StudentDashboard";
+import AdminLogin from "./pages/admin/AdminLogin";
+import { AdminLayout } from "./pages/admin/AdminLayout";
+import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { CourseManagement } from "./pages/admin/CourseManagement";
+import { TeacherManagement } from "./pages/admin/TeacherManagement";
+import { StudentManagement } from "./pages/admin/StudentManagement";
+import { PaymentManagement } from "./pages/admin/PaymentManagement";
+import { SystemMonitoring } from "./pages/admin/SystemMonitoring";
 import NotFound from "./pages/NotFound";
 
 
@@ -65,16 +73,16 @@ const App = () => (
             <Route
               path="/teacher/create-course"
               element={
-                <TeacherRoute>
+                <VerifiedTeacherRoute>
                   <CreateCourse />
-                </TeacherRoute>
+                </VerifiedTeacherRoute>
               }
             />
             <Route
               path="/teacher/upload-proof"
               element={
                 <TeacherRoute>
-                  <UploadProof />
+                  <TutorStandPurchase />
                 </TeacherRoute>
               }
             />
@@ -89,25 +97,25 @@ const App = () => (
             <Route
               path="/teacher/my-courses"
               element={
-                <TeacherRoute>
+                <VerifiedTeacherRoute>
                   <MyCourses />
-                </TeacherRoute>
+                </VerifiedTeacherRoute>
               }
             />
             <Route
               path="/teacher/edit-course/:id"
               element={
-                <TeacherRoute>
+                <VerifiedTeacherRoute>
                   <EditCourse />
-                </TeacherRoute>
+                </VerifiedTeacherRoute>
               }
             />
             <Route
               path="/teacher/earnings"
               element={
-                <TeacherRoute>
+                <VerifiedTeacherRoute>
                   <TeacherEarnings />
-                </TeacherRoute>
+                </VerifiedTeacherRoute>
               }
             />
             <Route path="/student/login" element={<StudentLogin />} />
@@ -120,6 +128,23 @@ const App = () => (
                 </StudentRoute>
               }
             />
+            {/* Admin Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminLayout />
+                </ProtectedAdminRoute>
+              }
+            >
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="courses" element={<CourseManagement />} />
+              <Route path="teachers" element={<TeacherManagement />} />
+              <Route path="students" element={<StudentManagement />} />
+              <Route path="payments" element={<PaymentManagement />} />
+              <Route path="system" element={<SystemMonitoring />} />
+            </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

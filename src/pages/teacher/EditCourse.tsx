@@ -27,7 +27,7 @@ import {
 import { useCourse, useUpdateCourse, usePublishCourse } from "@/hooks/useCourses";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
-import { getMediaUrl } from "@/lib/media";
+import { extractRelativePath, getMediaUrl } from "@/lib/media";
 
 interface CourseFormData {
   title: string;
@@ -79,14 +79,19 @@ const EditCourse = () => {
   useEffect(() => {
     if (courseData?.data) {
       const course = courseData.data;
+
+      // Normalize any stored full URLs back to relative paths to avoid double /uploads
+      const normalizedThumbnail = extractRelativePath(course.thumbnailImage || course.thumbnail) || "";
+      const normalizedVideo = extractRelativePath(course.videoUrl) || "";
+
       setFormData({
         title: course.title || "",
         description: course.description || "",
         category: course.category || "",
         price: course.price || 0,
         duration: course.duration || 0,
-        thumbnailImage: course.thumbnailImage || course.thumbnail || "",
-        videoUrl: course.videoUrl || "",
+        thumbnailImage: normalizedThumbnail,
+        videoUrl: normalizedVideo,
       });
       setIsPublished(course.isPublished || false);
     }

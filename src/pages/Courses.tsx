@@ -12,6 +12,7 @@ import { Search, Video, Star, Clock, Users, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import type { ApiError } from "@/types";
+import { getMediaUrl } from "@/lib/media";
 
 interface Course {
   id: string;
@@ -22,6 +23,7 @@ interface Course {
   duration: number;
   rating: number;
   thumbnail?: string;
+  thumbnailImage?: string;
   teacher: {
     user: {
       firstName: string;
@@ -177,11 +179,14 @@ const Courses = () => {
                 <Link key={course.id} to={`/courses/${course.id}`}>
                   <Card className="shadow-card hover:shadow-soft transition-shadow overflow-hidden h-full cursor-pointer">
                     <div className="aspect-video bg-muted relative overflow-hidden">
-                      {course.thumbnail ? (
+                      {course.thumbnail || course.thumbnailImage ? (
                         <img
-                          src={course.thumbnail}
+                          src={getMediaUrl(course.thumbnail || course.thumbnailImage)}
                           alt={course.title}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">

@@ -119,6 +119,11 @@ export interface CreateSubscriptionOrderInput {
   amount: number;
 }
 
+export interface CreateVerificationOrderInput {
+  plan: 'verification';
+  amount: number;
+}
+
 export interface RazorpayVerificationInput {
   razorpay_order_id: string;
   razorpay_payment_id: string;

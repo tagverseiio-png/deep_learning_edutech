@@ -1,25 +1,26 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Video, Star, BookMarked, Loader2 } from "lucide-react";
-import { useCourses } from "@/hooks/useCourses";
+import { Search, Video, Star, BookMarked, Loader2, Compass } from "lucide-react";
+import { useMyEnrollments } from "@/hooks/useEnrollments";
 import { useStudentDashboardStats } from "@/hooks/useStudent";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { getMediaUrl } from "@/lib/media";
 
 const StudentDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Fetch courses with search functionality
-  const { data: coursesData, isLoading: coursesLoading } = useCourses(
-    searchQuery ? { search: searchQuery, limit: 6 } : { limit: 6 }
-  );
+  // Fetch enrolled courses
+  const { data: enrollmentsData, isLoading: enrollmentsLoading } = useMyEnrollments();
 
   // Fetch real dashboard stats from API
   const { data: statsData, isLoading: statsLoading } = useStudentDashboardStats();
@@ -32,7 +33,13 @@ const StudentDashboard = () => {
     totalAssignments: 0,
   };
 
-  const courses = coursesData?.data || [];
+  // Filter enrolled courses by search query
+  const enrolledCourses = enrollmentsData?.data?.map((e: any) => e.course) || [];
+  const filteredCourses = enrolledCourses.filter((course: any) =>
+    course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.category?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -125,30 +132,50 @@ const StudentDashboard = () => {
 
           {/* Recommended Videos */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-6">
-              {searchQuery ? `Search Results for "${searchQuery}"` : "Recommended Videos"}
-            </h2>
-            {coursesLoading ? (
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">
+                {searchQuery ? `Search Results for "${searchQuery}"` : "My Courses"}
+              </h2>
+              <Button 
+                onClick={() => navigate("/courses")}
+                className="gap-2"
+              >
+                <Compass className="h-5 w-5" />
+                Browse All Courses
+              </Button>
+            </div>
+            {enrollmentsLoading ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">Loading courses...</span>
+                <span className="ml-2 text-muted-foreground">Loading your courses...</span>
               </div>
-            ) : courses.length === 0 ? (
+            ) : filteredCourses.length === 0 ? (
               <div className="text-center py-12">
                 <Video className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No courses found</h3>
-                <p className="text-muted-foreground">
-                  {searchQuery ? "Try adjusting your search terms" : "No courses are available at the moment"}
+                <h3 className="text-xl font-semibold mb-2">
+                  {searchQuery ? "No courses match your search" : "You haven't enrolled in any courses yet"}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {searchQuery ? "Try adjusting your search terms" : "Browse and enroll in courses to get started"}
                 </p>
+                {!searchQuery && (
+                  <Button 
+                    onClick={() => navigate("/courses")}
+                    size="lg"
+                  >
+                    <Compass className="mr-2 h-5 w-5" />
+                    Browse Courses
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {courses.map((course) => (
+                {filteredCourses.map((course: any) => (
                   <Card key={course.id} className="shadow-card hover:shadow-soft transition-shadow overflow-hidden">
                     <div className="aspect-video bg-muted relative overflow-hidden">
                       {(course.thumbnail || course.thumbnailImage) ? (
                         <img
-                          src={course.thumbnail || course.thumbnailImage}
+                          src={getMediaUrl(course.thumbnail || course.thumbnailImage) || undefined}
                           alt={course.title}
                           className="w-full h-full object-cover"
                         />
@@ -175,11 +202,11 @@ const StudentDashboard = () => {
                         <Badge variant="outline">{course.category}</Badge>
                         <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">4.5</span>
+                          <span className="text-sm font-medium">{course.rating?.toFixed(1) || "N/A"}</span>
                         </div>
                       </div>
                       <Button className="w-full" onClick={() => window.location.href = `/courses/${course.id}`}>
-                        View Course
+                        Continue Watching
                       </Button>
                     </CardContent>
                   </Card>

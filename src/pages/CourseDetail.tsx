@@ -8,11 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getMediaUrl } from "@/lib/media";
 import { Star, Clock, Users, Play, ShoppingCart, CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import api from "@/lib/api";
+import api, { API_BASE_URL, tokenStorage } from "@/lib/api";
+import { loadRazorpay } from "@/lib/razorpay";
 import type { ApiError } from "@/types";
+
+interface Lesson {
+  id: string;
+  title: string;
+  videoUrl?: string;
+  duration?: number;
+  order: number;
+}
+
+interface Module {
+  id: string;
+  title: string;
+  lessons: Lesson[];
+}
 
 interface Course {
   id: string;
@@ -24,6 +40,7 @@ interface Course {
   rating: number;
   thumbnail?: string;
   videoUrl?: string;
+  modules?: Module[];
   createdAt: string;
   teacher: {
     id: string;
@@ -55,6 +72,9 @@ const CourseDetail = () => {
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -72,6 +92,7 @@ const CourseDetail = () => {
     try {
       setLoading(true);
       const response = await api.get(`/courses/${id}`);
+      console.debug('fetchCourse response', response);
       setCourse(response.data.data);
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
@@ -109,7 +130,15 @@ const CourseDetail = () => {
         amount: course.price,
       });
 
-      const { order } = orderResponse.data.data;
+      // Normalize possible response shapes and guard against undefined
+      console.debug('create-order response', orderResponse);
+      const order =
+        orderResponse?.data?.data?.order || orderResponse?.data?.order || orderResponse?.data;
+
+      if (!order) {
+        console.error('Invalid create-order response, order missing', orderResponse);
+        throw new Error('Invalid order response from server');
+      }
 
       // Initialize Razorpay
       const options = {
@@ -120,28 +149,51 @@ const CourseDetail = () => {
         description: `Payment for ${course.title}`,
         order_id: order.id,
         handler: async (response: any) => {
-          try {
-            // Verify payment
-            await api.post("/payments/verify", {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
+            try {
+              // Verify payment
+              await api.post("/payments/verify", {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
 
-            toast({
-              title: "Payment successful!",
-              description: "You are now enrolled in this course.",
-            });
+              toast({
+                title: "Payment successful!",
+                description: "You are now enrolled in this course.",
+              });
 
-            // Check enrollment again
-            await checkEnrollment();
-          } catch (error) {
-            toast({
-              variant: "destructive",
-              title: "Payment verification failed",
-              description: "Please contact support if money was debited.",
-            });
-          }
+              // Check enrollment again
+              await checkEnrollment();
+            } catch (error: any) {
+              console.error('Payment verify error:', error);
+              // If server returned 404 for primary verify route, try alternate verification path
+              const status = error?.response?.status;
+              const data = error?.response?.data;
+              if (status === 404) {
+                console.warn('Primary verify endpoint returned 404, trying /payments/verification/verify');
+                try {
+                  await api.post('/payments/verification/verify', {
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                  });
+                  toast({
+                    title: 'Payment successful!',
+                    description: 'You are now enrolled in this course.',
+                  });
+                  await checkEnrollment();
+                  return;
+                } catch (err2) {
+                  console.error('Fallback verify error:', err2);
+                }
+              }
+
+              toast({
+                variant: "destructive",
+                title: "Payment verification failed",
+                description: data?.message || error?.message || "Please contact support if money was debited.",
+              });
+            }
         },
         prefill: {
           name: `${user.firstName} ${user.lastName}`,
@@ -152,14 +204,27 @@ const CourseDetail = () => {
         },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
+      // Ensure Razorpay SDK is loaded before constructing the instance
+      try {
+        const Razorpay = await loadRazorpay();
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } catch (err) {
+        console.error('Razorpay load error:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Payment failed',
+          description: 'Could not load payment gateway. Please try again later.',
+        });
+      }
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
+      console.error("Enroll error:", axiosError);
       toast({
         variant: "destructive",
         title: "Enrollment failed",
-        description: axiosError.response?.data?.message || "Failed to process enrollment",
+        description:
+          axiosError.response?.data?.message || axiosError.message || "Failed to process enrollment",
       });
     } finally {
       setEnrolling(false);
@@ -167,14 +232,89 @@ const CourseDetail = () => {
   };
 
   const handleWatchCourse = () => {
-    if (enrollment) {
-      // Navigate to course player or content
+    if (!enrollment) return;
+
+    // Extract first lesson video from modules
+    const firstLesson = course?.modules?.[0]?.lessons?.[0];
+    const hasVideo = firstLesson?.videoUrl || course?.videoUrl;
+
+    if (!hasVideo) {
       toast({
-        title: "Opening course",
-        description: "Course content will be available soon.",
+        variant: 'destructive',
+        title: 'No video available',
+        description: 'This course does not have playable video content yet.',
       });
+      return;
     }
+
+    setIsPlaying(true);
   };
+
+  // When playback starts, fetch the protected stream with Authorization and create a blob URL
+  useEffect(() => {
+    let revokedUrl: string | null = null;
+
+    const loadVideo = async () => {
+      if (!isPlaying) return;
+
+      // Get video URL from first lesson or fallback to course.videoUrl
+      const firstLesson = course?.modules?.[0]?.lessons?.[0];
+      const videoUrl = firstLesson?.videoUrl || course?.videoUrl;
+
+      if (!videoUrl) return;
+
+      // Extract filename and remove "videos/" prefix if present
+      let filename = videoUrl.replace(/^videos\//, '').split("/").pop();
+      if (!filename) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid video path',
+          description: 'Unable to determine video filename.',
+        });
+        return;
+      }
+
+      const streamUrl = `${API_BASE_URL.replace(/\/api\/?$/, '')}/api/media/stream/${filename}`;
+      setVideoLoading(true);
+
+      try {
+        const token = tokenStorage.getAccessToken();
+        const resp = await fetch(streamUrl, {
+          method: 'GET',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => '');
+          throw new Error(`Failed to fetch video: ${resp.status} ${resp.statusText} ${text}`);
+        }
+
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        revokedUrl = url;
+        setVideoSrc(url);
+      } catch (err: any) {
+        console.error('Video fetch error:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Video load failed',
+          description: err?.message || 'Could not load video.',
+        });
+        setIsPlaying(false);
+      } finally {
+        setVideoLoading(false);
+      }
+    };
+
+    loadVideo();
+
+    return () => {
+      if (revokedUrl) {
+        URL.revokeObjectURL(revokedUrl);
+        setVideoSrc(null);
+      };
+    };
+  }, [isPlaying, course?.videoUrl, course?.modules]);
 
   if (loading) {
     return (
@@ -220,9 +360,28 @@ const CourseDetail = () => {
               {/* Video Thumbnail */}
               <Card className="overflow-hidden">
                 <div className="aspect-video bg-muted relative">
-                  {course.thumbnail ? (
+                  {isPlaying ? (
+                    videoLoading ? (
+                      <div className="w-full h-full flex items-center justify-center bg-black">
+                        <Loader2 className="h-8 w-8 animate-spin text-white" />
+                      </div>
+                    ) : videoSrc ? (
+                      <video
+                        src={videoSrc}
+                        className="w-full h-full object-cover"
+                        controls
+                        autoPlay
+                        controlsList="nodownload"
+                        onContextMenu={(e) => e.preventDefault()}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-black">
+                        <p className="text-white">Loading video...</p>
+                      </div>
+                    )
+                  ) : course.thumbnail ? (
                     <img
-                      src={course.thumbnail}
+                      src={getMediaUrl(course.thumbnail) || undefined}
                       alt={course.title}
                       className="w-full h-full object-cover"
                     />
@@ -231,7 +390,7 @@ const CourseDetail = () => {
                       <Play className="h-16 w-16 text-muted-foreground" />
                     </div>
                   )}
-                  {isEnrolled && (
+                  {isEnrolled && !isPlaying && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <Button onClick={handleWatchCourse} size="lg">
                         <Play className="mr-2 h-5 w-5" />
@@ -327,7 +486,7 @@ const CourseDetail = () => {
                 <CardContent>
                   <div className="flex items-center gap-3 mb-4">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={course.teacher.user.profileImage} />
+                      <AvatarImage src={getMediaUrl(course.teacher.user.profileImage) || undefined} />
                       <AvatarFallback>
                         {course.teacher.user.firstName[0]}{course.teacher.user.lastName[0]}
                       </AvatarFallback>

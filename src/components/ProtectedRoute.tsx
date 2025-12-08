@@ -53,6 +53,23 @@ export function TeacherRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Higher-order component for verified teacher routes
+export function VerifiedTeacherRoute({ children }: { children: React.ReactNode }) {
+  const purchaseStatus = localStorage.getItem("tutorStandPurchaseStatus") || "not_started";
+  const isVerified = purchaseStatus === "verified";
+
+  if (!isVerified) {
+    // Redirect unverified teachers to purchase page
+    return <Navigate to="/teacher/purchase-tutor-stand" replace />;
+  }
+
+  return (
+    <TeacherRoute>
+      {children}
+    </TeacherRoute>
+  );
+}
+
 // Higher-order component for student routes
 export function StudentRoute({ children }: { children: React.ReactNode }) {
   return (

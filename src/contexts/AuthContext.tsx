@@ -70,6 +70,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     
     tokenStorage.clearTokens();
+    // Clear teacher verification status on logout
+    localStorage.removeItem("tutorStandPurchaseStatus");
+    localStorage.removeItem("tutorStandScreenshot");
+    localStorage.removeItem("purchaseDate");
     setUser(null);
   };
 

@@ -25,6 +25,7 @@ import {
   BarChart3,
   Wallet,
 } from "lucide-react";
+import { getMediaUrl } from "@/lib/media";
 import { useMyCoursesTeacher } from "@/hooks/useCourses";
 import { useTeacherEarnings, useTeacherProfile } from "@/hooks/useTeacher";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,17 +45,17 @@ const TeacherDashboard = () => {
   const teacherProfile = profileData?.data;
 
   useEffect(() => {
-    // Load purchase status from localStorage or API
-    const status = localStorage.getItem("tutorStandPurchaseStatus") || "not_started";
-    setPurchaseStatus(status as any);
-    
-    // Check if teacher is verified from profile
+    // Treat server-side verification as the source of truth
     if (teacherProfile?.isVerified) {
       setPurchaseStatus("verified");
+    } else {
+      setPurchaseStatus("pending");
     }
   }, [teacherProfile]);
 
-  const isPurchaseVerified = purchaseStatus === "verified" || teacherProfile?.isVerified;
+  // Teacher verification is ONLY based on successful ₹299 payment
+  // This prevents backend inconsistencies from showing false verification status
+  const isPurchaseVerified = purchaseStatus === "verified";
 
   // Calculate stats
   const totalCourses = courses.length;
@@ -78,7 +79,7 @@ const TeacherDashboard = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                Welcome back, {user?.name?.split(' ')[0] || 'Teacher'}! 👋
+                Welcome back, {user?.firstName || 'Teacher'}! 👋
               </h1>
               <p className="text-muted-foreground">
                 Here's what's happening with your courses
@@ -102,9 +103,9 @@ const TeacherDashboard = () => {
                     <div>
                       <p className="font-semibold mb-1">Complete Your Setup</p>
                       <p className="text-sm text-muted-foreground">
-                        {purchaseStatus === "not_started" && "Purchase the Tutor Stand to start uploading courses and earn money."}
-                        {purchaseStatus === "pending" && "Your purchase is under verification. You'll be notified once approved."}
-                        {purchaseStatus === "rejected" && "Your purchase was rejected. Please contact support or try purchasing again."}
+                        {purchaseStatus === "not_started" && "Complete your ₹299 payment to get verified and start uploading courses."}
+                        {purchaseStatus === "pending" && "Your payment is being processed. You'll be verified automatically once confirmed."}
+                        {purchaseStatus === "rejected" && "Your payment was not processed. Please try purchasing again."}
                       </p>
                     </div>
                   </div>
@@ -232,7 +233,7 @@ const TeacherDashboard = () => {
                           <div className="w-20 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                             {(course.thumbnail || course.thumbnailImage) ? (
                               <img
-                                src={course.thumbnail || course.thumbnailImage}
+                                src={getMediaUrl(course.thumbnail || course.thumbnailImage) || undefined}
                                 alt={course.title}
                                 className="w-full h-full object-cover"
                               />

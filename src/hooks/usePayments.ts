@@ -4,6 +4,7 @@ import type {
   Payment,
   CreateOrderInput,
   CreateSubscriptionOrderInput,
+  CreateVerificationOrderInput,
   RazorpayVerificationInput,
   RazorpayOrder,
   ApiResponse,
@@ -70,23 +71,23 @@ export function useVerifyPayment() {
   });
 }
 
-// Create subscription order for teachers
-export function useCreateSubscriptionOrder() {
+// Create verification order for teachers
+export function useCreateVerificationOrder() {
   return useMutation({
-    mutationFn: async (data: CreateSubscriptionOrderInput) => {
-      const response = await api.post<ApiResponse<{ order: RazorpayOrder; payment: Payment }>>('/payments/subscription/create-order', data);
+    mutationFn: async (data: CreateVerificationOrderInput) => {
+      const response = await api.post<ApiResponse<{ order: RazorpayOrder; payment: Payment }>>('/payments/verification/create-order', data);
       return response.data;
     },
   });
 }
 
-// Verify subscription payment
-export function useVerifySubscriptionPayment() {
+// Verify verification payment
+export function useVerifyVerificationPayment() {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async (data: RazorpayVerificationInput) => {
-      const response = await api.post<ApiResponse<{ payment: Payment }>>('/payments/subscription/verify', data);
+      const response = await api.post<ApiResponse<{ payment: Payment }>>('/payments/verify', data);
       return response.data;
     },
     onSuccess: () => {
