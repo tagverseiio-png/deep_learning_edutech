@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import api from '@/lib/api';
+import type { ApiResponse } from '@/types';
 
 export function ContactUs() {
   const [formData, setFormData] = useState({
@@ -36,8 +38,8 @@ export function ContactUs() {
 
     try {
       setLoading(true);
-      // TODO: Replace with actual API endpoint
-      console.log('Contact form submitted:', formData);
+      
+      await api.post<ApiResponse<any>>('/contact', formData);
       
       toast({
         title: 'Success',

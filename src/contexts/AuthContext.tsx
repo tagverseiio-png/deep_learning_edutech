@@ -70,10 +70,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     
     tokenStorage.clearTokens();
-    // Clear teacher verification status on logout
-    localStorage.removeItem("tutorStandPurchaseStatus");
-    localStorage.removeItem("tutorStandScreenshot");
-    localStorage.removeItem("purchaseDate");
+    // Clear all session-related data on logout
+    const keysToRemove = Object.keys(localStorage).filter(
+      key => key.startsWith('edutech_') || 
+              key.startsWith('tutor') || 
+              key === 'purchaseDate'
+    );
+    keysToRemove.forEach(key => localStorage.removeItem(key));
     setUser(null);
   };
 

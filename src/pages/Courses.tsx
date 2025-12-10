@@ -87,11 +87,14 @@ const Courses = () => {
     }
   };
 
+  // Sanitize search term to prevent XSS
+  const sanitizedSearchTerm = searchTerm.replace(/[<>\"']/g, '').toLowerCase();
+  
   const filteredCourses = courses.filter((course) =>
-    course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.teacher.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.teacher.user.lastName.toLowerCase().includes(searchTerm.toLowerCase())
+    course.title.toLowerCase().includes(sanitizedSearchTerm) ||
+    course.description.toLowerCase().includes(sanitizedSearchTerm) ||
+    course.teacher.user.firstName.toLowerCase().includes(sanitizedSearchTerm) ||
+    course.teacher.user.lastName.toLowerCase().includes(sanitizedSearchTerm)
   );
 
   return (

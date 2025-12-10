@@ -17,7 +17,7 @@ export const paymentKeys = {
 };
 
 // Razorpay configuration from environment
-const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_RnRYoVL6qEW0UM';
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
 // Load Razorpay script
 export function loadRazorpayScript(): Promise<boolean> {
@@ -27,10 +27,35 @@ export function loadRazorpayScript(): Promise<boolean> {
       return;
     }
     
+    // Check if script is already being loaded
+    const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existingScript) {
+      if (existingScript.hasAttribute('data-loading')) {
+        // Wait for existing load
+        const checkInterval = setInterval(() => {
+          if (window.Razorpay) {
+            clearInterval(checkInterval);
+            resolve(true);
+          }
+        }, 100);
+        return;
+      }
+    }
+    
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
+    script.async = true;
+    script.integrity = 'sha384-8C8Oy6x8nMNLpfL8BtCHr6lO6tP1JU0pGf0qbUpWBYV5qYbltRKLABKH6qMDvNMNM';
+    script.crossOrigin = 'anonymous';
+    script.setAttribute('data-loading', 'true');
+    script.onload = () => {
+      script.removeAttribute('data-loading');
+      resolve(true);
+    };
+    script.onerror = () => {
+      script.removeAttribute('data-loading');
+      resolve(false);
+    };
     document.body.appendChild(script);
   });
 }

@@ -92,7 +92,6 @@ const CourseDetail = () => {
     try {
       setLoading(true);
       const response = await api.get(`/courses/${id}`);
-      console.debug('fetchCourse response', response);
       setCourse(response.data.data);
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
@@ -131,12 +130,10 @@ const CourseDetail = () => {
       });
 
       // Normalize possible response shapes and guard against undefined
-      console.debug('create-order response', orderResponse);
       const order =
         orderResponse?.data?.data?.order || orderResponse?.data?.order || orderResponse?.data;
 
       if (!order) {
-        console.error('Invalid create-order response, order missing', orderResponse);
         throw new Error('Invalid order response from server');
       }
 
@@ -165,12 +162,10 @@ const CourseDetail = () => {
               // Check enrollment again
               await checkEnrollment();
             } catch (error: any) {
-              console.error('Payment verify error:', error);
               // If server returned 404 for primary verify route, try alternate verification path
               const status = error?.response?.status;
               const data = error?.response?.data;
               if (status === 404) {
-                console.warn('Primary verify endpoint returned 404, trying /payments/verification/verify');
                 try {
                   await api.post('/payments/verification/verify', {
                     razorpay_order_id: response.razorpay_order_id,
@@ -184,7 +179,7 @@ const CourseDetail = () => {
                   await checkEnrollment();
                   return;
                 } catch (err2) {
-                  console.error('Fallback verify error:', err2);
+                  // Fallback verification also failed
                 }
               }
 
@@ -210,7 +205,6 @@ const CourseDetail = () => {
         const rzp = new Razorpay(options);
         rzp.open();
       } catch (err) {
-        console.error('Razorpay load error:', err);
         toast({
           variant: 'destructive',
           title: 'Payment failed',
@@ -219,7 +213,6 @@ const CourseDetail = () => {
       }
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
-      console.error("Enroll error:", axiosError);
       toast({
         variant: "destructive",
         title: "Enrollment failed",

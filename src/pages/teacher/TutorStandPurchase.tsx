@@ -59,8 +59,8 @@ const TutorStandPurchase = () => {
             // Verify payment on backend
             await verifyPaymentMutation.mutateAsync(paymentData);
 
-            // Update local status - automatically verified upon successful payment
-            localStorage.setItem("tutorStandPurchaseStatus", "verified");
+            // Don't set verification status locally - server returns it
+            // The user object will be updated from API response
             setPurchaseStatus("verified");
 
             toast({

@@ -2,18 +2,27 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 class AdminAPI {
   private token: string | null = localStorage.getItem('adminToken');
+  private static readonly TOKEN_EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours
 
   setToken(token: string) {
     this.token = token;
     localStorage.setItem('adminToken', token);
+    localStorage.setItem('adminTokenExpiry', String(Date.now() + AdminAPI.TOKEN_EXPIRY_TIME));
   }
 
   clearToken() {
     this.token = null;
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminTokenExpiry');
   }
 
   getToken() {
+    // Check if token has expired
+    const expiry = localStorage.getItem('adminTokenExpiry');
+    if (expiry && Date.now() > parseInt(expiry)) {
+      this.clearToken();
+      return null;
+    }
     return this.token;
   }
 

@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { adminApi } from '@/lib/adminApi';
 
 const AdminLogin = () => {
-  const [email, setEmail] = useState('admin@edutech.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -110,9 +110,7 @@ const AdminLogin = () => {
             </Button>
 
             <p className="text-xs text-muted-foreground text-center">
-              Demo credentials:<br />
-              Email: admin@edutech.com<br />
-              Password: Admin@123
+              Contact your administrator for login credentials
             </p>
           </form>
         </CardContent>

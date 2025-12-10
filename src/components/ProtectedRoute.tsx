@@ -54,12 +54,25 @@ export function TeacherRoute({ children }: { children: React.ReactNode }) {
 }
 
 // Higher-order component for verified teacher routes
+// NOTE: Verification should be checked on the server-side via user.verificationStatus
 export function VerifiedTeacherRoute({ children }: { children: React.ReactNode }) {
-  const purchaseStatus = localStorage.getItem("tutorStandPurchaseStatus") || "not_started";
-  const isVerified = purchaseStatus === "verified";
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check server-side verification status, not localStorage
+  const isVerified = user?.verificationStatus === 'VERIFIED';
 
   if (!isVerified) {
-    // Redirect unverified teachers to purchase page
     return <Navigate to="/teacher/purchase-tutor-stand" replace />;
   }
 
