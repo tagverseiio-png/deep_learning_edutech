@@ -60,12 +60,26 @@ const TeacherLogin = () => {
       navigate("/teacher/dashboard");
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
-      const errorMessage = axiosError.response?.data?.message || 
-        (isLogin ? "Login failed. Please check your credentials." : "Registration failed. Please try again.");
+      
+      // Extract error message from various possible response formats
+      let errorMessage = "";
+      if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message;
+      } else if (axiosError.response?.data?.error) {
+        errorMessage = axiosError.response.data.error;
+      } else if (axiosError.response?.status === 409) {
+        errorMessage = "Email already registered. Please login instead.";
+      } else if (axiosError.response?.status === 400) {
+        errorMessage = "Please check your input. All fields are required.";
+      } else if (axiosError.response?.status === 401) {
+        errorMessage = "Invalid email or password.";
+      } else {
+        errorMessage = isLogin ? "Login failed. Please check your credentials." : "Registration failed. Please try again.";
+      }
       
       toast({
         variant: "destructive",
-        title: isLogin ? "Login failed" : "Registration failed",
+        title: isLogin ? "Login Failed" : "Registration Failed",
         description: errorMessage,
       });
     } finally {

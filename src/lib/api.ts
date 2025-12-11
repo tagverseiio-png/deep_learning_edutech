@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 // API base URL - use environment variable or default
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.deeplearningedutech.com/api';
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'edutech_access_token';

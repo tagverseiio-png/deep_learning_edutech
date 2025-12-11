@@ -1,12 +1,12 @@
 // Media URL utilities for handling file paths and constructing full URLs
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.deeplearningedutech.com/api';
 
 /**
  * Convert a relative file path to a full media URL
  * Examples:
- *   'images/file.jpg' -> 'http://localhost:8000/api/../uploads/images/file.jpg'
- *   'videos/video.mp4' -> 'http://localhost:8000/api/../uploads/videos/video.mp4'
+ *   'images/file.jpg' -> 'https://api.deeplearningedutech.com/api/../uploads/images/file.jpg'
+ *   'videos/video.mp4' -> 'https://api.deeplearningedutech.com/api/../uploads/videos/video.mp4'
  */
 export const getMediaUrl = (relativePath: string | undefined | null): string | null => {
   if (!relativePath) return null;

@@ -63,11 +63,24 @@ const TeacherRegister = () => {
       navigate("/teacher/dashboard");
     } catch (error) {
       const axiosError = error as AxiosError<ApiError>;
-      const errorMessage = axiosError.response?.data?.message || "Registration failed. Please try again.";
+      
+      // Extract error message from various possible response formats
+      let errorMessage = "";
+      if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message;
+      } else if (axiosError.response?.data?.error) {
+        errorMessage = axiosError.response.data.error;
+      } else if (axiosError.response?.status === 409) {
+        errorMessage = "Email already registered. Please login instead.";
+      } else if (axiosError.response?.status === 400) {
+        errorMessage = "Please check your input. All fields are required.";
+      } else {
+        errorMessage = "Registration failed. Please try again.";
+      }
 
       toast({
         variant: "destructive",
-        title: "Registration failed",
+        title: "Registration Failed",
         description: errorMessage,
       });
     } finally {
