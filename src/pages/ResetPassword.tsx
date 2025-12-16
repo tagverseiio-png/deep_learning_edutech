@@ -40,18 +40,35 @@ const ResetPassword = () => {
       }
 
       try {
-        // Try to validate the token by attempting the reset
-        // If token is invalid, it will fail during reset
-        setIsValid(true);
+        // Verify token with GET endpoint
+        const response = await api.get(`/auth/reset-password?token=${token}&email=${encodeURIComponent(email)}`);
+        
+        if (response.data.success) {
+          setIsValid(true);
+        } else {
+          setIsValid(false);
+        }
       } catch (error) {
+        const axiosError = error as AxiosError<ApiError>;
+        
+        // Log error for debugging
+        console.error('Token validation error:', axiosError.response?.data || axiosError.message);
+        
         setIsValid(false);
+        
+        // Show error toast
+        toast({
+          variant: "destructive",
+          title: "Invalid Reset Link",
+          description: axiosError.response?.data?.message || "The password reset link is invalid or has expired.",
+        });
       } finally {
         setIsValidating(false);
       }
     };
 
     validateToken();
-  }, [token, email]);
+  }, [token, email, toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -110,14 +127,29 @@ const ResetPassword = () => {
       const axiosError = error as AxiosError<ApiError>;
 
       let errorMessage = "";
+      let shouldRedirect = false;
+
       if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
         errorMessage = "Request timeout. Server is taking too long to respond. Please try again.";
+      } else if (axiosError.response?.data?.error) {
+        // Backend returns error field for validation failures
+        errorMessage = axiosError.response.data.error;
+        
+        // Check if it's a token-related error
+        if (errorMessage.toLowerCase().includes('invalid') || 
+            errorMessage.toLowerCase().includes('expired')) {
+          shouldRedirect = true;
+        }
       } else if (axiosError.response?.data?.message) {
         errorMessage = axiosError.response.data.message;
       } else if (axiosError.response?.status === 400) {
         errorMessage = "Invalid or expired reset link. Please request a new one.";
+        shouldRedirect = true;
       } else if (axiosError.response?.status === 401) {
         errorMessage = "Reset link has expired. Please request a new one.";
+        shouldRedirect = true;
+      } else if (axiosError.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
       } else {
         errorMessage = "Failed to reset password. Please try again.";
       }
@@ -129,7 +161,7 @@ const ResetPassword = () => {
       });
 
       // If token is invalid/expired, redirect after showing error
-      if (axiosError.response?.status === 400 || axiosError.response?.status === 401) {
+      if (shouldRedirect) {
         setTimeout(() => {
           navigate("/forgot-password");
         }, 3000);
@@ -178,17 +210,28 @@ const ResetPassword = () => {
               <Alert className="mb-6 border-red-200 bg-red-50">
                 <AlertCircle className="h-4 w-4 text-red-600" />
                 <AlertDescription className="text-red-800">
-                  Please request a new password reset link to continue.
+                  This password reset link is invalid or has expired. Password reset links are valid for 1 hour.
                 </AlertDescription>
               </Alert>
 
-              <Button
-                type="button"
-                className="w-full"
-                onClick={() => navigate("/forgot-password")}
-              >
-                Request New Link
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => navigate("/forgot-password")}
+                >
+                  Request New Reset Link
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate("/student/login")}
+                >
+                  Back to Login
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </main>
