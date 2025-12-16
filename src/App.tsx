@@ -16,6 +16,8 @@ import { CancellationsAndRefunds } from "./pages/CancellationsAndRefunds";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import TeacherLogin from "./pages/teacher/TeacherLogin";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherRegister from "./pages/teacher/TeacherRegister";
@@ -125,6 +127,8 @@ const App = () => (
             />
             <Route path="/student/login" element={<StudentLogin />} />
             <Route path="/student/register" element={<StudentRegister />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/student/dashboard"
               element={

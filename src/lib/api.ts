@@ -54,7 +54,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000, // 15 seconds for better stability
+  timeout: 30000, // 30 seconds - increased for slow backend responses
 });
 
 // Request interceptor - add auth token
@@ -80,7 +80,12 @@ api.interceptors.response.use(
     
     // Network timeout or no response
     if (!error.response) {
-      logger.error('Network error - no response from server', error, { url: originalRequest?.url });
+      // Check if it's a timeout error
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        logger.error('Request timeout - server took too long to respond', error, { url: originalRequest?.url });
+      } else {
+        logger.error('Network error - no response from server', error, { url: originalRequest?.url });
+      }
       return Promise.reject(error);
     }
 

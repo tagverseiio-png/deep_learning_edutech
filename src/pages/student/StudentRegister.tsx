@@ -62,7 +62,9 @@ const StudentRegister = () => {
       
       // Extract error message from various possible response formats
       let errorMessage = "";
-      if (axiosError.response?.data?.message) {
+      if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
+        errorMessage = "Request timeout. Server is taking too long to respond. Your account may have been created - please try logging in.";
+      } else if (axiosError.response?.data?.message) {
         errorMessage = axiosError.response.data.message;
       } else if (axiosError.response?.data?.error) {
         errorMessage = axiosError.response.data.error;
