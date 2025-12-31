@@ -39,7 +39,34 @@ export function ContactUs() {
     try {
       setLoading(true);
       
-      await api.post<ApiResponse<any>>('/contact', formData);
+      // Create HTML email content
+      const htmlContent = `
+        <h2>New Contact Form Submission</h2>
+        <p><strong>Name:</strong> ${formData.name}</p>
+        <p><strong>Email:</strong> ${formData.email}</p>
+        <p><strong>Phone:</strong> ${formData.phone || 'Not provided'}</p>
+        <p><strong>Subject:</strong> ${formData.subject}</p>
+        <hr />
+        <p><strong>Message:</strong></p>
+        <p>${formData.message.replace(/\n/g, '<br>')}</p>
+      `;
+
+      const response = await fetch('https://api.driftspike.space/api/send-email', {
+        method: 'POST',
+        headers: {
+          'x-api-key': 'decd57be-fb28-4830-ac18-56361fd2d377',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: 'amareshu1511@gmail.com',
+          subject: `Contact Form: ${formData.subject}`,
+          html: htmlContent,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
       
       toast({
         title: 'Success',
