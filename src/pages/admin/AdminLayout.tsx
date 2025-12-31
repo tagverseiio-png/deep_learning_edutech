@@ -46,11 +46,6 @@ export function AdminLayout() {
       icon: CreditCard,
       path: '/admin/payments',
     },
-    {
-      label: 'System',
-      icon: Activity,
-      path: '/admin/system',
-    },
   ];
 
   const handleLogout = () => {
