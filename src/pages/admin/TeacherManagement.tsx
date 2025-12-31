@@ -11,29 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTrigger,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { adminApi } from '@/lib/adminApi';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, XCircle, Clock, Edit2, Trash2, Search } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Search } from 'lucide-react';
 
 interface Teacher {
   id: string;
@@ -65,9 +47,6 @@ export function TeacherManagement() {
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 1 });
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
-  const [savingEdit, setSavingEdit] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -86,18 +65,13 @@ export function TeacherManagement() {
         search: debouncedSearch,
       });
 
-      const data = (response as any)?.data || response;
-      const rawTeachers = Array.isArray((response as any)?.data)
-        ? (response as any).data
-        : Array.isArray(data?.teachers)
-          ? data.teachers
-          : Array.isArray((data as any)?.data)
-            ? (data as any).data
-            : Array.isArray((response as any)?.data?.data)
-              ? (response as any).data.data
-              : Array.isArray(response)
-                ? response
-                : [];
+      console.log('📋 TeacherManagement - Full response:', response);
+      
+      // Parse response: { success, data: { teachers: [...], pagination: {...} } }
+      const responseData = (response as any)?.data || {};
+      const rawTeachers = responseData?.teachers || [];
+      
+      console.log('📋 TeacherManagement - Raw teachers:', rawTeachers);
 
       const normalized = rawTeachers
         .filter(Boolean)
@@ -121,18 +95,17 @@ export function TeacherManagement() {
         })
         .filter((t) => t.id);
 
+      console.log('📋 TeacherManagement - Normalized teachers:', normalized);
       setTeachers(normalized);
 
-      const paginationData = (response as any)?.pagination
-        || (response as any)?.data?.pagination
-        || data?.pagination
-        || data?.data?.pagination
-        || {};
+      const paginationData = responseData?.pagination || {};
+      console.log('📋 TeacherManagement - Pagination:', paginationData);
+      
       setPagination({
         page: pageToFetch,
         limit: Number(paginationData.limit) || limit,
         total: Number(paginationData.total) || normalized.length,
-        totalPages: Number(paginationData.totalPages) || 1,
+        totalPages: Number(paginationData.pages || paginationData.totalPages) || 1,
       });
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
@@ -156,112 +129,6 @@ export function TeacherManagement() {
     fetchTeachers(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, selectedTab, debouncedSearch]);
-
-  const handleVerifyTeacher = async (teacherId: string) => {
-    try {
-      await adminApi.verifyTeacher(teacherId, 'APPROVED');
-      setTeachers(
-        teachers.map((t) =>
-          t.id === teacherId ? { ...t, status: 'approved' } : t
-        )
-      );
-      toast({
-        title: 'Success',
-        description: 'Teacher verified successfully.',
-      });
-      fetchTeachers(page);
-    } catch (error) {
-      console.error('Failed to verify teacher:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to verify teacher.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleRejectTeacher = async (teacherId: string) => {
-    try {
-      await adminApi.verifyTeacher(teacherId, 'REJECTED');
-      setTeachers(
-        teachers.map((t) =>
-          t.id === teacherId ? { ...t, status: 'rejected' } : t
-        )
-      );
-      toast({
-        title: 'Success',
-        description: 'Teacher application rejected.',
-      });
-      fetchTeachers(page);
-    } catch (error) {
-      console.error('Failed to reject teacher:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to reject teacher.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingTeacher) return;
-
-    try {
-      setSavingEdit(true);
-      const payload = {
-        bio: editingTeacher.bio?.trim() || undefined,
-        expertise: editingTeacher.expertise?.trim() || undefined,
-        experience:
-          typeof editingTeacher.experience === 'number'
-            ? editingTeacher.experience
-            : undefined,
-        education: editingTeacher.education?.trim() || undefined,
-        verificationStatus:
-          editingTeacher.status && editingTeacher.status !== 'unknown'
-            ? editingTeacher.status.toUpperCase()
-            : undefined,
-      };
-
-      await adminApi.updateTeacher(editingTeacher.id, payload);
-      setTeachers((prev) =>
-        prev.map((t) => (t.id === editingTeacher.id ? { ...t, ...editingTeacher } : t))
-      );
-      toast({
-        title: 'Success',
-        description: 'Teacher updated successfully.',
-      });
-      setEditingTeacher(null);
-    } catch (error) {
-      console.error('Failed to update teacher:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update teacher.',
-        variant: 'destructive',
-      });
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
-  const handleDelete = async (teacherId: string) => {
-    try {
-      await adminApi.deleteTeacher(teacherId);
-      setTeachers(teachers.filter((t) => t.id !== teacherId));
-      setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }));
-      setDeleteId(null);
-      toast({
-        title: 'Success',
-        description: 'Teacher deleted successfully.',
-      });
-    } catch (error) {
-      console.error('Failed to delete teacher:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete teacher.',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const safeTeachers = Array.isArray(teachers) ? teachers : [];
   const filteredTeachers = safeTeachers;
@@ -303,7 +170,6 @@ export function TeacherManagement() {
             <TableHead>Courses</TableHead>
             <TableHead>Join Date</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -325,179 +191,11 @@ export function TeacherManagement() {
                     ]?.badge || statusConfig.unknown.badge
                   }
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    {teacher.status === 'pending' && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleVerifyTeacher(teacher.id)}
-                          className="text-green-600 hover:text-green-700"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRejectTeacher(teacher.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                    <Dialog
-                      open={editingTeacher?.id === teacher.id}
-                      onOpenChange={(open) => setEditingTeacher(open ? teacher : null)}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingTeacher(teacher)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Teacher</DialogTitle>
-                          <DialogDescription>
-                            Update teacher profile details.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-sm font-medium">Name</label>
-                            <Input value={editingTeacher?.name || 'Unknown'} disabled />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Email</label>
-                            <Input type="email" value={editingTeacher?.email || 'N/A'} disabled />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Phone</label>
-                            <Input value={editingTeacher?.phoneNumber || ''} disabled />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Expertise</label>
-                            <Input
-                              value={editingTeacher?.expertise || ''}
-                              onChange={(e) =>
-                                setEditingTeacher(
-                                  editingTeacher
-                                    ? { ...editingTeacher, expertise: e.target.value }
-                                    : null
-                                )
-                              }
-                              placeholder="e.g., Python, AI"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Bio</label>
-                            <Textarea
-                              value={editingTeacher?.bio || ''}
-                              onChange={(e) =>
-                                setEditingTeacher(
-                                  editingTeacher
-                                    ? { ...editingTeacher, bio: e.target.value }
-                                    : null
-                                )
-                              }
-                              rows={4}
-                              placeholder="Short bio"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Experience (years)</label>
-                            <Input
-                              type="number"
-                              value={editingTeacher?.experience ?? ''}
-                              onChange={(e) =>
-                                setEditingTeacher(
-                                  editingTeacher
-                                    ? { ...editingTeacher, experience: e.target.value ? Number(e.target.value) : undefined }
-                                    : null
-                                )
-                              }
-                              min={0}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Education</label>
-                            <Input
-                              value={editingTeacher?.education || ''}
-                              onChange={(e) =>
-                                setEditingTeacher(
-                                  editingTeacher
-                                    ? { ...editingTeacher, education: e.target.value }
-                                    : null
-                                )
-                              }
-                              placeholder="e.g., PhD in Computer Science"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Verification Status</label>
-                            <select
-                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                              value={(editingTeacher?.status || 'unknown').toUpperCase()}
-                              onChange={(e) =>
-                                setEditingTeacher(
-                                  editingTeacher
-                                    ? { ...editingTeacher, status: (e.target.value || 'UNKNOWN').toLowerCase() as Teacher['status'] }
-                                    : null
-                                )
-                              }
-                            >
-                              <option value="PENDING">Pending</option>
-                              <option value="APPROVED">Approved</option>
-                              <option value="REJECTED">Rejected</option>
-                              <option value="UNKNOWN">Unknown</option>
-                            </select>
-                          </div>
-                          <Button className="w-full" onClick={handleSaveEdit} disabled={!editingTeacher || savingEdit}>
-                            {savingEdit ? 'Saving...' : 'Save Changes'}
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                    <AlertDialog
-                      open={deleteId === teacher.id}
-                      onOpenChange={(open) => setDeleteId(open ? teacher.id : null)}
-                    >
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogTitle>Delete Teacher</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{teacher.name}"? This action cannot be undone and will remove their courses.
-                        </AlertDialogDescription>
-                        <div className="flex justify-end gap-2">
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(teacher.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </div>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8">
+              <TableCell colSpan={5} className="text-center py-8">
                 No teachers found
               </TableCell>
             </TableRow>

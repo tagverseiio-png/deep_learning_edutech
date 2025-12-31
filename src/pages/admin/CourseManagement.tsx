@@ -54,15 +54,15 @@ export function CourseManagement() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const data = await adminApi.getCourses();
+      const response = await adminApi.getCourses();
 
-      // Backend responses may be plain arrays or wrapped inside { data }
-      const normalized = Array.isArray((data as any)?.data)
-        ? (data as any).data
-        : Array.isArray(data)
-          ? data
-          : [];
-
+      console.log('📋 CourseManagement - Full response:', response);
+      
+      // Parse response: { success, data: { courses: [...], pagination: {...} } }
+      const responseData = (response as any)?.data || {};
+      const normalized = responseData?.courses || [];
+      
+      console.log('📋 CourseManagement - Normalized courses:', normalized);
       setCourses(normalized);
     } catch (error) {
       console.error('Failed to fetch courses:', error);
@@ -184,7 +184,6 @@ export function CourseManagement() {
                     <TableHead>Enrollments</TableHead>
                     <TableHead>Rating</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -205,112 +204,11 @@ export function CourseManagement() {
                             {course.isPublished ? 'Published' : 'Draft'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleTogglePublish(course.id, course.isPublished || false)
-                              }
-                              title={
-                                course.isPublished
-                                  ? 'Unpublish course'
-                                  : 'Publish course'
-                              }
-                            >
-                              {course.isPublished ? (
-                                <Eye className="h-4 w-4" />
-                              ) : (
-                                <EyeOff className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setEditingCourse(course)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Edit Course</DialogTitle>
-                                  <DialogDescription>
-                                    Update course information
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div>
-                                    <label className="text-sm font-medium">Title</label>
-                                    <Input
-                                      value={editingCourse?.title || ''}
-                                      onChange={(e) =>
-                                        setEditingCourse(
-                                          editingCourse
-                                            ? { ...editingCourse, title: e.target.value }
-                                            : null
-                                        )
-                                      }
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Price</label>
-                                    <Input
-                                      type="number"
-                                      value={editingCourse?.price || ''}
-                                      onChange={(e) =>
-                                        setEditingCourse(
-                                          editingCourse
-                                            ? {
-                                                ...editingCourse,
-                                                price: parseInt(e.target.value),
-                                              }
-                                            : null
-                                        )
-                                      }
-                                    />
-                                  </div>
-                                  <Button className="w-full">Save Changes</Button>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                            <AlertDialog>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeleteId(course.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                              {deleteId === course.id && (
-                                <AlertDialogContent>
-                                  <AlertDialogTitle>Delete Course</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete "{course.title}"? This
-                                    action cannot be undone.
-                                  </AlertDialogDescription>
-                                  <div className="flex justify-end gap-2">
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(course.id)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </div>
-                                </AlertDialogContent>
-                              )}
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         No courses found
                       </TableCell>
                     </TableRow>

@@ -82,11 +82,13 @@ export function StudentManagement() {
         search: debouncedSearch,
       });
 
-      const rawStudents = Array.isArray((response as any)?.data)
-        ? (response as any).data
-        : Array.isArray(response)
-          ? response
-          : [];
+      console.log('📋 StudentManagement - Full response:', response);
+      
+      // Parse response: { success, data: { students: [...], pagination: {...} } }
+      const responseData = (response as any)?.data || {};
+      const rawStudents = responseData?.students || [];
+      
+      console.log('📋 StudentManagement - Raw students:', rawStudents);
 
       const normalized = rawStudents
         .filter(Boolean)
@@ -108,14 +110,17 @@ export function StudentManagement() {
         })
         .filter((s) => s.id);
 
+      console.log('📋 StudentManagement - Normalized students:', normalized);
       setStudents(normalized);
 
-      const paginationData = (response as any)?.pagination || {};
+      const paginationData = responseData?.pagination || {};
+      console.log('📋 StudentManagement - Pagination:', paginationData);
+      
       setPagination({
         page: pageToFetch,
         limit: Number(paginationData.limit) || limit,
         total: Number(paginationData.total) || normalized.length,
-        totalPages: Number(paginationData.totalPages) || 1,
+        totalPages: Number(paginationData.pages || paginationData.totalPages) || 1,
       });
     } catch (error) {
       console.error('Failed to fetch students:', error);
@@ -281,7 +286,6 @@ export function StudentManagement() {
                       <TableHead>Enrollments</TableHead>
                       <TableHead>Reviews</TableHead>
                       <TableHead>Join Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                 <TableBody>
@@ -313,112 +317,11 @@ export function StudentManagement() {
                             ? new Date(student.joinDate).toLocaleDateString()
                             : 'N/A'}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Dialog
-                              open={editingStudent?.id === student.id}
-                              onOpenChange={(open) => setEditingStudent(open ? student : null)}
-                            >
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setEditingStudent(student)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Edit Student</DialogTitle>
-                                  <DialogDescription>
-                                    Update student profile details.
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div>
-                                    <label className="text-sm font-medium">Name</label>
-                                    <Input value={editingStudent?.name || 'Unknown'} disabled />
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Email</label>
-                                    <Input type="email" value={editingStudent?.email || 'N/A'} disabled />
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Phone</label>
-                                    <Input value={editingStudent?.phone || ''} disabled />
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Interests</label>
-                                    <Textarea
-                                      value={editingStudent?.interests || ''}
-                                      onChange={(e) =>
-                                        setEditingStudent(
-                                          editingStudent
-                                            ? { ...editingStudent, interests: e.target.value }
-                                            : null
-                                        )
-                                      }
-                                      rows={3}
-                                      placeholder="e.g., AI, ML, Web Development"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Goals</label>
-                                    <Textarea
-                                      value={editingStudent?.goals || ''}
-                                      onChange={(e) =>
-                                        setEditingStudent(
-                                          editingStudent
-                                            ? { ...editingStudent, goals: e.target.value }
-                                            : null
-                                        )
-                                      }
-                                      rows={3}
-                                      placeholder="e.g., Become a full-stack developer"
-                                    />
-                                  </div>
-                                  <Button className="w-full" onClick={handleSaveEdit} disabled={!editingStudent || savingEdit}>
-                                    {savingEdit ? 'Saving...' : 'Save Changes'}
-                                  </Button>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                            <AlertDialog
-                              open={deleteId === student.id}
-                              onOpenChange={(open) => setDeleteId(open ? student.id : null)}
-                            >
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogTitle>Delete Student</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{student.name}"? This action cannot be undone and will remove all enrollments and reviews.
-                                </AlertDialogDescription>
-                                <div className="flex justify-end gap-2">
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(student.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </div>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         No students found
                       </TableCell>
                     </TableRow>

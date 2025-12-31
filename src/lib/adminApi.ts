@@ -34,21 +34,48 @@ class AdminAPI {
   }
 
   async login(email: string, password: string) {
+    console.log('🔵 Admin Login - Calling /admin/login', { email });
     const res = await fetch(`${API_BASE}/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
+    console.log('✅ Admin Login - Response:', { success: data.success, role: data.data?.user?.role });
+    if (!res.ok) {
+      console.error('❌ Admin Login - Error:', data);
+      throw new Error(data.message || 'Login failed');
+    }
     if (data.success) this.setToken(data.data.token);
     return data;
   }
 
   async getDashboardStats() {
+    console.log('🔵 getDashboardStats - Calling /admin/dashboard/stats');
     const res = await fetch(`${API_BASE}/admin/dashboard/stats`, {
       headers: this.headers(),
     });
-    return res.json();
+    const data = await res.json();
+    console.log('✅ getDashboardStats - Response:', data);
+    if (!res.ok) {
+      console.error('❌ getDashboardStats - Error:', data);
+      throw new Error(data.message || 'Failed to fetch dashboard stats');
+    }
+    return data;
+  }
+
+  async getSystemStats() {
+    console.log('🔵 getSystemStats - Calling /admin/system/stats');
+    const res = await fetch(`${API_BASE}/admin/system/stats`, {
+      headers: this.headers(),
+    });
+    const data = await res.json();
+    console.log('✅ getSystemStats - Response:', data);
+    if (!res.ok) {
+      console.error('❌ getSystemStats - Error:', data);
+      throw new Error(data.message || 'Failed to fetch system stats');
+    }
+    return data;
   }
 
   async getCourses(page = 1, limit = 20, search = '') {
@@ -57,10 +84,17 @@ class AdminAPI {
     url.searchParams.append('limit', String(limit));
     if (search) url.searchParams.append('search', search);
 
+    console.log('🔵 getCourses - Calling /admin/courses', { page, limit, search });
     const res = await fetch(url.toString(), {
       headers: this.headers(),
     });
-    return res.json();
+    const data = await res.json();
+    console.log('✅ getCourses - Response:', data);
+    if (!res.ok) {
+      console.error('❌ getCourses - Error:', data);
+      throw new Error(data.message || 'Failed to fetch courses');
+    }
+    return data;
   }
 
   async updateCourse(courseId: string, data: any) {
@@ -96,10 +130,17 @@ class AdminAPI {
     if (status) url.searchParams.append('status', status.toUpperCase());
     if (search) url.searchParams.append('search', search);
 
+    console.log('🔵 getTeachers - Calling /admin/teachers', { page, limit, status, search });
     const res = await fetch(url.toString(), {
       headers: this.headers(),
     });
-    return res.json();
+    const data = await res.json();
+    console.log('✅ getTeachers - Response:', data);
+    if (!res.ok) {
+      console.error('❌ getTeachers - Error:', data);
+      throw new Error(data.message || 'Failed to fetch teachers');
+    }
+    return data;
   }
 
   async verifyTeacher(teacherId: string, verificationStatus: string) {
@@ -135,10 +176,17 @@ class AdminAPI {
     url.searchParams.append('limit', String(limit));
     if (search) url.searchParams.append('search', search);
 
+    console.log('🔵 getStudents - Calling /admin/students', { page, limit, search });
     const res = await fetch(url.toString(), {
       headers: this.headers(),
     });
-    return res.json();
+    const data = await res.json();
+    console.log('✅ getStudents - Response:', data);
+    if (!res.ok) {
+      console.error('❌ getStudents - Error:', data);
+      throw new Error(data.message || 'Failed to fetch students');
+    }
+    return data;
   }
 
   async updateStudent(studentId: string, data: any) {
@@ -153,13 +201,6 @@ class AdminAPI {
   async deleteStudent(studentId: string) {
     const res = await fetch(`${API_BASE}/admin/students/${studentId}`, {
       method: 'DELETE',
-      headers: this.headers(),
-    });
-    return res.json();
-  }
-
-  async getSystemStats() {
-    const res = await fetch(`${API_BASE}/admin/system/stats`, {
       headers: this.headers(),
     });
     return res.json();
@@ -182,10 +223,17 @@ class AdminAPI {
     if (status) url.searchParams.append('status', status);
     if (purpose) url.searchParams.append('purpose', purpose);
 
+    console.log('🔵 getPayments - Calling /admin/payments', { page, limit, status, purpose });
     const res = await fetch(url.toString(), {
       headers: this.headers(),
     });
-    return res.json();
+    const data = await res.json();
+    console.log('✅ getPayments - Response:', data);
+    if (!res.ok) {
+      console.error('❌ getPayments - Error:', data);
+      throw new Error(data.message || 'Failed to fetch payments');
+    }
+    return data;
   }
 
   async deletePayment(paymentId: string) {

@@ -19,18 +19,9 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { adminApi } from '@/lib/adminApi';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Filter, Download, Trash2 } from 'lucide-react';
+import { Search, Filter, Download } from 'lucide-react';
 
 interface Payment {
   id: string;
@@ -64,13 +55,7 @@ export function PaymentManagement() {
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 1 });
-  const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
@@ -89,11 +74,13 @@ export function PaymentManagement() {
         purpose: purposeParam,
       });
 
-      const rawPayments = Array.isArray((response as any)?.data)
-        ? (response as any).data
-        : Array.isArray(response)
-          ? response
-          : [];
+      console.log('📋 PaymentManagement - Full response:', response);
+      
+      // Parse response: { success, data: { payments: [...], pagination: {...} } }
+      const responseData = (response as any)?.data || {};
+      const rawPayments = responseData?.payments || [];
+      
+      console.log('📋 PaymentManagement - Raw payments:', rawPayments);
 
       const normalized = rawPayments
         .filter(Boolean)
@@ -122,12 +109,16 @@ export function PaymentManagement() {
 
       setPayments(normalized);
 
-      const paginationData = (response as any)?.pagination || {};
+      // Extract pagination - backend returns 'pages' but our type expects 'totalPages'
+      const paginationData = responseData?.pagination || {};
+      const totalPagesValue = Number(paginationData.totalPages) || Number(paginationData.pages) || 1;
+      console.log('📋 PaymentManagement - Pagination:', { ...paginationData, calculatedTotalPages: totalPagesValue });
+      
       setPagination({
         page: pageToFetch,
         limit: Number(paginationData.limit) || limit,
         total: Number(paginationData.total) || normalized.length,
-        totalPages: Number(paginationData.totalPages) || 1,
+        totalPages: totalPagesValue,
       });
     } catch (error) {
       console.error('Failed to fetch payments:', error);
@@ -153,26 +144,6 @@ export function PaymentManagement() {
   }, [page, statusFilter, purposeFilter, debouncedSearch]);
 
   const filteredPayments = payments;
-
-  const handleDeletePayment = async (paymentId: string) => {
-    try {
-      await adminApi.deletePayment(paymentId);
-      setPayments(payments.filter((p) => p.id !== paymentId));
-      setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }));
-      setDeleteId(null);
-      toast({
-        title: 'Success',
-        description: 'Payment record deleted successfully.',
-      });
-    } catch (error) {
-      console.error('Failed to delete payment:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete payment record.',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const totalAmount = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
   const completedAmount = filteredPayments
@@ -369,7 +340,6 @@ export function PaymentManagement() {
                       <TableHead>Status</TableHead>
                       <TableHead>Payment ID</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -402,46 +372,11 @@ export function PaymentManagement() {
                           <TableCell className="text-sm text-muted-foreground">
                             {new Date(payment.createdAt).toLocaleDateString()}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <AlertDialog
-                              open={deleteId === payment.id}
-                              onOpenChange={(open) => setDeleteId(open ? payment.id : null)}
-                            >
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogTitle>Delete Payment Record</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this payment record? This action cannot be undone.
-                                  <div className="mt-2 p-2 bg-muted rounded text-xs">
-                                    <p><strong>Order ID:</strong> {payment.razorpayOrderId || 'N/A'}</p>
-                                    <p><strong>Amount:</strong> {payment.currency} {payment.amount}</p>
-                                    <p><strong>User:</strong> {payment.userName}</p>
-                                  </div>
-                                </AlertDialogDescription>
-                                <div className="flex justify-end gap-2">
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeletePayment(payment.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </div>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8">
+                        <TableCell colSpan={7} className="text-center py-8">
                           No payments found
                         </TableCell>
                       </TableRow>
